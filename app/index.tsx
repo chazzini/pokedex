@@ -1,7 +1,9 @@
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Image } from "expo-image";
-import { Link, Stack } from "expo-router";
-import { useEffect, useState } from "react";
+import { Stack } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface Pokemon {
@@ -21,6 +23,13 @@ interface PokemonType {
 
 export default function Index() {
   const [pokedex, setPokedex] = useState<Pokemon[]>([]);
+  const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
+
+  const bottomSheetRef = useRef<BottomSheet>(null);
+
+  const handleSheetChanges = useCallback((index: number) => {
+    console.log("handleSheetChanges", index);
+  }, []);
 
   useEffect(() => {
     fetchPokedex();
@@ -74,22 +83,19 @@ export default function Index() {
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <ScrollView style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
-        {pokedex.map((pokemon: any) => (
-          <Link
-            href={{
-              pathname: `/[name]`,
-              params: {
-                name: pokemon.name,
-                url: pokemon.url,
-              },
-            }}
-            key={pokemon.name}
-            asChild
-          >
-            <Pressable>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView style={styles.container}>
+          <Stack.Screen options={{ headerShown: false }} />
+          {pokedex.map((pokemon: any) => (
+            <Pressable
+              onPress={() => {
+                handleSheetChanges(0);
+                bottomSheetRef.current?.expand();
+                setSelectedPokemon(pokemon);
+              }}
+              key={pokemon.name}
+            >
               <View
                 // @ts-ignore
                 style={{
@@ -124,10 +130,40 @@ export default function Index() {
                 </View>
               </View>
             </Pressable>
-          </Link>
-        ))}
-      </ScrollView>
-    </SafeAreaView>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
+      <BottomSheet
+        ref={bottomSheetRef}
+        snapPoints={["25%", "50%"]}
+        enablePanDownToClose
+        onClose={() => setSelectedPokemon(null)}
+        onChange={handleSheetChanges}
+        detached
+      >
+        <BottomSheetView style={{ flex: 1, alignItems: "center" }}>
+          {selectedPokemon && (
+            <View style={{ padding: 20 }}>
+              <Text style={{ fontSize: 24, fontWeight: "bold" }}>
+                {selectedPokemon.name.charAt(0).toUpperCase() +
+                  selectedPokemon.name.slice(1)}
+              </Text>
+              <Text style={{ marginBottom: 10 }}>
+                Types:{" "}
+                {selectedPokemon.types.map((type) => type.type.name).join(", ")}
+              </Text>
+              <Image
+                source={{ uri: selectedPokemon.image }}
+                style={{ width: 200, height: 200 }}
+                placeholder={{ blurhash }}
+                contentFit="cover"
+                transition={1000}
+              />
+            </View>
+          )}
+        </BottomSheetView>
+      </BottomSheet>
+    </GestureHandlerRootView>
   );
 }
 
